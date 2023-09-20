@@ -1,26 +1,30 @@
 import PropTypes from 'prop-types';
 import { parseISO, sub } from 'date-fns';
 import * as Yup from 'yup';
+import { useFormContext, useFieldArray } from 'react-hook-form';
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 // @mui
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 import LoadingButton from '@mui/lab/LoadingButton';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
 import MenuItem from '@mui/material/MenuItem';
+import Divider from '@mui/material/Divider';
 import ButtonBase from '@mui/material/ButtonBase';
 import Grid from '@mui/material/Unstable_Grid2';
 import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import FormControlLabel from '@mui/material/FormControlLabel';
-
+import { fTimestamp } from 'src/utils/format-time';
 // api
 import { updateEvent, createEvent } from 'src/api/event';
 import { toServiceEvent, toServiceNewEvent } from 'src/services/events-microservice';
@@ -37,6 +41,7 @@ import {
   EVENT_CENTER_OPTIONS,
   EVENT_PUBLIC_OPTIONS,
   EVENT_TOPIC_OPTIONS,
+  EVENT_FRECUENCY_OPTIONS,
   EVENT_HOURS_OPTIONS,
 } from 'src/_mock';
 // components
@@ -48,6 +53,7 @@ import FormProvider, {
   RHFUpload,
   RHFTextField,
   RHFAutocomplete,
+  RHFMultiCheckbox,
 } from 'src/components/hook-form';
 
 // ----------------------------------------------------------------------
@@ -120,6 +126,7 @@ export default function EventNewEditForm({ currentEvent }) {
       center: currentEvent?.center || '',
       timeStart: currentEvent?.timeStart || '',
       timeEnd: currentEvent?.timeEnd || '',
+      activities: currentEvent?.activities || [],
     }),
     [currentEvent]
   );
@@ -140,6 +147,24 @@ export default function EventNewEditForm({ currentEvent }) {
 
   const values = watch();
 
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'activities',
+  });
+
+  console.log('VALUES', fields);
+
+  const handleAdd = () => {
+    append({
+      title: '',
+      description: '',
+      service: '',
+      quantity: 1,
+      price: 0,
+      total: 0,
+    });
+  };
+
   useEffect(() => {
     if (currentEvent) {
       reset(defaultValues);
@@ -154,35 +179,33 @@ export default function EventNewEditForm({ currentEvent }) {
     }
   }, [currentEvent?.price, includePrice, setValue]);
 
+  const handleRemove = (index) => {
+    remove(index);
+  };
+
   const handleDropCover = useCallback(
     (acceptedFiles) => {
       if (acceptedFiles.length === 1) {
         const file = acceptedFiles[0];
 
         const newFile = URL.createObjectURL(file);
- 
+
         setValue('coverUrl', newFile, { shouldValidate: false });
       }
     },
     [setValue]
   );
-  
-  
+
   const handleDropImages = useCallback(
     (acceptedFiles) => {
       const files = values.images || [];
-  
-      const newUrls = acceptedFiles.map((file) =>
-        URL.createObjectURL(file)
-      );
-  
+
+      const newUrls = acceptedFiles.map((file) => URL.createObjectURL(file));
+
       setValue('images', [...files, ...newUrls], { shouldValidate: true });
     },
     [setValue, values.images]
   );
-  
-  
-  
 
   const onSubmit = handleSubmit(async (data) => {
     data.state = eventState;
@@ -227,7 +250,7 @@ export default function EventNewEditForm({ currentEvent }) {
 
   const renderDetails = (
     <>
-      <Grid xs={12} md={6}>
+      <Grid xs={12} md={5}>
         <Typography variant="h6" sx={{ mb: 0.5 }}>
           Detalles
         </Typography>
@@ -250,7 +273,7 @@ export default function EventNewEditForm({ currentEvent }) {
             />
 
             <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Cover</Typography>
+              <Typography variant="subtitle2">Cover</Typography>
               <RHFUpload
                 thumbnail
                 name="coverUrl"
@@ -277,10 +300,10 @@ export default function EventNewEditForm({ currentEvent }) {
       </Grid>
     </>
   );
-
+//  RENDER EVENT PROPERTIES
   const renderProperties = (
     <>
-      <Grid xs={12} md={6}>
+      <Grid xs={12} md={7}>
         <Typography variant="h6" sx={{ mb: 0.5 }}>
           Propiedades
         </Typography>
@@ -331,7 +354,6 @@ export default function EventNewEditForm({ currentEvent }) {
                 InputLabelProps={{ shrink: true }}
                 PaperPropsSx={{ textTransform: 'capitalize' }}
               >
-                
                 {EVENT_CATEGORY_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     {option.label}
@@ -429,6 +451,11 @@ export default function EventNewEditForm({ currentEvent }) {
                 ))}
               </RHFSelect>
             </Box>
+
+            <Stack spacing={1}>
+              <Typography variant="subtitle2">Frecuencia</Typography>
+              <RHFMultiCheckbox row name="tags" spacing={2} options={EVENT_FRECUENCY_OPTIONS} />
+            </Stack>
 
             <RHFAutocomplete
               name="public_type"
@@ -540,7 +567,7 @@ export default function EventNewEditForm({ currentEvent }) {
                       key={item.label}
                       onClick={() => field.onChange(item.label)}
                       sx={{
-                        p: 2.5,
+                        p: 0.5,
                         borderRadius: 1,
                         typography: 'subtitle2',
                         flexDirection: 'column',
@@ -609,10 +636,105 @@ export default function EventNewEditForm({ currentEvent }) {
             </Box>
           </Stack>
         </Card>
+        <Typography variant="h6" sx={{ mb: 0.5 }}>
+          Actividades
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+          Actividades del evento
+        </Typography>
+        <Card sx={{ mb: 3 }}>
+          {!mdUp && <CardHeader title="Activities" />}
+
+          <Stack spacing={3} sx={{ p: 3 }}>
+            <Stack spacing={3}>
+              {fields.map((item, index) => (
+                <Stack key={item.id} alignItems="flex-end" spacing={1.5}>
+                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ width: 1 }}>
+                    <RHFTextField
+                      name={`activities[${index}].name`}
+                      label="Nombre"
+                      InputLabelProps={{ shrink: true }}
+                    />
+
+                    <RHFTextField
+                      name={`activities[${index}].sku`}
+                      label="Ubicación"
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Stack>
+                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ width: 1 }}>
+                    <Controller
+                      name="createdStart"
+                      control={control}
+                      render={({ field }) => (
+                        <MobileDateTimePicker
+                          {...field}
+                          value={new Date(field.value)}
+                          onChange={(newValue) => {
+                            if (newValue) {
+                              field.onChange(fTimestamp(newValue));
+                            }
+                          }}
+                          label="Fecha Inicial"
+                          format="dd/MM/yyyy"
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="createdEnd"
+                      control={control}
+                      render={({ field }) => (
+                        <MobileDateTimePicker
+                          {...field}
+                          value={new Date(field.value)}
+                          onChange={(newValue) => {
+                            if (newValue) {
+                              field.onChange(fTimestamp(newValue));
+                            }
+                          }}
+                          label="Fecha Final"
+                          format="dd/MM/yyyy"
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  </Stack>
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+                    onClick={() => handleRemove(index)}
+                  >
+                    Eliminar
+                  </Button>
+                </Stack>
+              ))}
+              <Button
+                size="small"
+                color="primary"
+                startIcon={<Iconify icon="mingcute:add-line" />}
+                onClick={handleAdd}
+                sx={{ flexShrink: 0 }}
+              >
+                Agregar Actividad
+              </Button>
+            </Stack>
+          </Stack>
+        </Card>
       </Grid>
     </>
   );
 
+  // RENDER EVENT ACTIONS
   const renderActions = (
     <>
       <Grid xs={12} md={12} sx={{ display: 'flex', alignItems: 'center' }}>

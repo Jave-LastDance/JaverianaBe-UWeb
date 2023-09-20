@@ -5,8 +5,10 @@ import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+
 // components
 import Iconify from 'src/components/iconify';
+import { shortDateLabel } from 'src/components/custom-date-range-picker';
 
 // ----------------------------------------------------------------------
 
@@ -19,45 +21,36 @@ export default function eventTableFiltersResult({
   results,
   ...other
 }) {
-  const handleRemoveStock = (inputValue) => {
-    const newValue = filters.category.filter((item) => item !== inputValue);
-    onFilters('category', newValue);
+  const shortLabel = shortDateLabel(filters.createdStart, filters.createdEnd);
+
+  const handleRemoveStatus = () => {
+    onFilters('state', 'all');
   };
 
-  const handleRemovePublish = (inputValue) => {
-    const newValue = filters.state.filter((item) => item !== inputValue);
-    onFilters('state', newValue);
+  const handleRemoveDate = () => {
+    onFilters('createdStart', null);
+    onFilters('createdEnd', null);
   };
 
   return (
     <Stack spacing={1.5} {...other}>
       <Box sx={{ typography: 'body2' }}>
         <strong>{results}</strong>
-        <Box component="span" sx={{ color: 'text.secondary', ml: 0.50 }}>
-          Resultados encontrados
+        <Box component="span" sx={{ color: 'text.secondary', ml: 0.5 }}>
+          resultado(s) encontrados
         </Box>
       </Box>
 
       <Stack flexGrow={1} spacing={1} direction="row" flexWrap="wrap" alignItems="center">
-        {!!filters.category.length && (
-          <Block label="Categoría:">
-            {filters.category.map((item) => (
-              <Chip sx={{ textTransform: 'capitalize' }} key={item} label={item} size="small" onDelete={() => handleRemoveStock(item)} />
-            ))}
+        {filters.state !== 'all' && (
+          <Block label="Estado:">
+            <Chip size="small" label={filters.state} onDelete={handleRemoveStatus} />
           </Block>
         )}
 
-        {!!filters.state.length && (
-          <Block label="Estado:">
-            {filters.state.map((item) => (
-              <Chip
-                sx={{ textTransform: 'capitalize' }}
-                key={item}
-                label={item}
-                size="small"
-                onDelete={() => handleRemovePublish(item)}
-              />
-            ))}
+        {filters.createdStart && filters.createdEnd && (
+          <Block label="Fecha:">
+            <Chip size="small" label={shortLabel} onDelete={handleRemoveDate} />
           </Block>
         )}
 

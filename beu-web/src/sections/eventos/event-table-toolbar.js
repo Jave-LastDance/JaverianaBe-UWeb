@@ -1,28 +1,25 @@
 import PropTypes from 'prop-types';
 import { useCallback } from 'react';
 // @mui
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
 import IconButton from '@mui/material/IconButton';
-import FormControl from '@mui/material/FormControl';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
-import Select from '@mui/material/Select';
 // components
 import Iconify from 'src/components/iconify';
 import CustomPopover, { usePopover } from 'src/components/custom-popover';
 
 // ----------------------------------------------------------------------
 
-export default function eventTableToolbar({
+export default function OrderEventToolbar({
   filters,
   onFilters,
   //
-  categoryOptions,
-  stateOptions,
+  canReset,
+  onResetFilters,
 }) {
   const popover = usePopover();
 
@@ -33,22 +30,16 @@ export default function eventTableToolbar({
     [onFilters]
   );
 
-  const handleFilterStock = useCallback(
-    (event) => {
-      onFilters(
-        'category',
-        typeof event.target.value === 'string' ? event.target.value.split(',') : event.target.value
-      );
+  const handleFilterStartDate = useCallback(
+    (newValue) => {
+      onFilters('createdStart', newValue);
     },
     [onFilters]
   );
 
-  const handleFilterPublish = useCallback(
-    (event) => {
-      onFilters(
-        'state',
-        typeof event.target.value === 'string' ? event.target.value.split(',') : event.target.value
-      );
+  const handleFilterEndDate = useCallback(
+    (newValue) => {
+      onFilters('createdEnd', newValue);
     },
     [onFilters]
   );
@@ -67,63 +58,29 @@ export default function eventTableToolbar({
           pr: { xs: 2.5, md: 1 },
         }}
       >
-        <FormControl
-          sx={{
-            flexShrink: 0,
-            width: { xs: 1, md: 250 },
+        <DatePicker
+          label="Fecha Inicio"
+          value={filters.createdStart}
+          onChange={handleFilterStartDate}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+            },
           }}
-        >
-          <InputLabel>Categoría</InputLabel>
-
-          <Select
-            multiple
-            value={filters.category}
-            onChange={handleFilterStock}
-            input={<OutlinedInput label="Categoría" />}
-            renderValue={(selected) => selected.map((value) => value).join(', ')}
-            sx={{ textTransform: 'capitalize' }}
-          >
-            {categoryOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                <Checkbox
-                  disableRipple
-                  size="small"
-                  checked={filters.category.includes(option.value)}
-                />
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl
           sx={{
-            flexShrink: 0,
-            width: { xs: 1, md: 250 },
+            maxWidth: { md: 200 },
           }}
-        >
-          <InputLabel>Estado</InputLabel>
+        />
 
-          <Select
-            multiple
-            value={filters.state}
-            onChange={handleFilterPublish}
-            input={<OutlinedInput label="Estado" />}
-            renderValue={(selected) => selected.map((value) => value).join(', ')}
-            sx={{ textTransform: 'capitalize' }}
-          >
-            {stateOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                <Checkbox
-                  disableRipple
-                  size="small"
-                  checked={filters.state.includes(option.value)}
-                />
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <DatePicker
+          label="Fecha Fin"
+          value={filters.createdEnd}
+          onChange={handleFilterEndDate}
+          slotProps={{ textField: { fullWidth: true } }}
+          sx={{
+            maxWidth: { md: 200 },
+          }}
+        />
 
         <Stack direction="row" alignItems="center" spacing={2} flexGrow={1} sx={{ width: 1 }}>
           <TextField
@@ -144,6 +101,17 @@ export default function eventTableToolbar({
             <Iconify icon="eva:more-vertical-fill" />
           </IconButton>
         </Stack>
+
+        {canReset && (
+          <Button
+            color="error"
+            sx={{ flexShrink: 0 }}
+            onClick={onResetFilters}
+            startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+          >
+            Limpiar
+          </Button>
+        )}
       </Stack>
 
       <CustomPopover
@@ -183,9 +151,9 @@ export default function eventTableToolbar({
   );
 }
 
-eventTableToolbar.propTypes = {
+OrderEventToolbar.propTypes = {
+  canReset: PropTypes.bool,
   filters: PropTypes.object,
   onFilters: PropTypes.func,
-  stateOptions: PropTypes.array,
-  categoryOptions: PropTypes.array,
+  onResetFilters: PropTypes.func,
 };

@@ -3,14 +3,17 @@ import { format } from 'date-fns';
 // @mui
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
+import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
+import Stack from '@mui/material/Stack';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import ListItemText from '@mui/material/ListItemText';
+import Collapse from '@mui/material/Collapse';
 import LinearProgress from '@mui/material/LinearProgress';
 // utils
 import { fCurrency } from 'src/utils/format-number';
@@ -44,11 +47,64 @@ export default function eventTableRow({
     capacity,
     timeStart,
     timeEnd,
+    ratings,
+    activities,
   } = row;
+
 
   const confirm = useBoolean();
 
   const popover = usePopover();
+
+  const collapse = useBoolean();
+
+  const renderSecondary = (
+    <TableRow>
+      <TableCell sx={{ p: 0, border: 'none' }} colSpan={8}>
+        <Collapse
+          in={collapse.value}
+          timeout="auto"
+          unmountOnExit
+          sx={{ bgcolor: 'background.neutral' }}
+        >
+          <Stack component={Paper} sx={{ m: 1.5 }}>
+            {activities.map((activity) => (
+              <Stack
+                key={activity.id}
+                direction="row"
+                alignItems="center"
+                sx={{
+                  p: (theme) => theme.spacing(1.5, 2, 1.5, 1.5),
+                  '&:not(:last-of-type)': {
+                    borderBottom: (theme) => `solid 2px ${theme.palette.background.neutral}`,
+                  },
+                }}
+              >
+                <Avatar src={activity.coverUrl} variant="rounded" sx={{ width: 48, height: 48, mr: 2 }} />
+
+                <ListItemText
+                  primary={activity.name}
+                  secondary={''}
+                  primaryTypographyProps={{
+                    typography: 'body2',
+                  }}
+                  secondaryTypographyProps={{
+                    component: 'span',
+                    color: 'text.disabled',
+                    mt: 0.5,
+                  }}
+                />
+
+                <Box>x{activity.quantity}</Box>
+
+                <Box sx={{ width: 110, textAlign: 'right' }}>{fCurrency(activity.price)}</Box>
+              </Stack>
+            ))}
+          </Stack>
+        </Collapse>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <>
@@ -79,14 +135,17 @@ export default function eventTableRow({
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                   maxWidth: '400px', // Ajusta este valor según tus necesidades
-                  display: 'block'
+                  display: 'block',
                 }}
               >
                 {name}
               </Link>
             }
             secondary={
-              <Box component="div" sx={{ typography: 'body2', color: 'text.disabled', textTransform: 'capitalize' }}>
+              <Box
+                component="div"
+                sx={{ typography: 'body2', color: 'text.disabled', textTransform: 'capitalize' }}
+              >
                 {category}
               </Box>
             }
@@ -107,7 +166,7 @@ export default function eventTableRow({
         </TableCell>
 
         <TableCell>
-        <ListItemText
+          <ListItemText
             primary={createdEnd}
             secondary={format(new Date(`2000-01-01T${timeEnd}`), 'h:mm a')}
             primaryTypographyProps={{ typography: 'body2', noWrap: true }}
@@ -124,7 +183,13 @@ export default function eventTableRow({
             value={capacity}
             variant="determinate"
             color={
-              capacity== 0 ? 'success' :capacity < 25 ? 'error' : capacity < 50 ? 'warning' : 'success'
+              capacity == 0
+                ? 'success'
+                : capacity < 25
+                ? 'error'
+                : capacity < 50
+                ? 'warning'
+                : 'success'
             }
             sx={{ mb: 1, height: 6, maxWidth: 80 }}
           />
@@ -139,12 +204,26 @@ export default function eventTableRow({
           </Label>
         </TableCell>
 
-        <TableCell align="right">
-          <IconButton color={popover.open ? 'primary' : 'default'} onClick={popover.onOpen}>
+        <TableCell align="right" sx={{ px: 1, whiteSpace: 'nowrap' }}>
+          <IconButton
+            color={collapse.value ? 'inherit' : 'default'}
+            onClick={collapse.onToggle}
+            sx={{
+              ...(collapse.value && {
+                bgcolor: 'action.hover',
+              }),
+            }}
+          >
+            <Iconify icon="eva:arrow-ios-downward-fill" />
+          </IconButton>
+
+          <IconButton color={popover.open ? 'inherit' : 'default'} onClick={popover.onOpen}>
             <Iconify icon="eva:more-vertical-fill" />
           </IconButton>
         </TableCell>
       </TableRow>
+
+      {renderSecondary}
 
       <CustomPopover
         open={popover.open}

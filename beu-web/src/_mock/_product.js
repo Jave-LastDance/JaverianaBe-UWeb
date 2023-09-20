@@ -109,9 +109,20 @@ export const EVENT_HEAD_OPTIONS = [
   'anagal@javeriana.edu.co',
 ];
 
+export const EVENT_FRECUENCY_OPTIONS = [
+  { label: 'Lunes', value: 'monday' },
+  { label: 'Martes', value: 'tuesday' },
+  { label: 'Miércoles', value: 'wednesday' },
+  { label: 'Jueves', value: 'thursday' },
+  { label: 'Viernes', value: 'friday' },
+  { label: 'Sábado', value: 'saturday' },
+  { label: 'Domingo', value: 'sunday' },
+];
+
 export const EVENT_STATE_OPTIONS = [
   { value: 'publicado', label: 'Publicado' },
   { value: 'borrador', label: 'Borrador' },
+  { value: 'cancelado', label: 'Cancelado' },
 ];
 
 export const EVENT_CENTER_OPTIONS = ['Deportivo', 'Cultural', 'Pastoral'];

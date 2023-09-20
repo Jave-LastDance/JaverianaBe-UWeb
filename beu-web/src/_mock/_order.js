@@ -14,7 +14,7 @@ const ITEMS = [...Array(3)].map((_, index) => ({
   sku: `16H9UR${index}`,
   quantity: index + 1,
   name: _mock.productName(index),
-  coverUrl: _mock.image.product(index),
+  coverUrl: _mock.image.product(index+1),
   price: _mock.number.price(index),
 }));
 

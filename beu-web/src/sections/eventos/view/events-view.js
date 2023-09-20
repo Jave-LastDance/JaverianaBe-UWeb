@@ -1,12 +1,15 @@
 'use client';
 
 import isEqual from 'lodash/isEqual';
+import { alpha } from '@mui/material/styles';
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 // @mui
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import TableBody from '@mui/material/TableBody';
@@ -27,6 +30,7 @@ import { useBoolean } from 'src/hooks/use-boolean';
 import { useGetEvents, deleteEvent, searchEvents } from 'src/api/event';
 // components
 import { useSettingsContext } from 'src/components/settings';
+import Label from 'src/components/label';
 import {
   useTable,
   getComparator,
@@ -51,6 +55,8 @@ import { TimeClock } from '@mui/x-date-pickers';
 
 // ----------------------------------------------------------------------
 
+const STATUS_OPTIONS = [{ value: 'all', label: 'Todos' }, ...EVENT_STATE_OPTIONS];
+
 const TABLE_HEAD = [
   { id: 'name', label: 'Evento', width: 700 },
   { id: 'createdStart', label: 'Fecha Inicio', width: 180 },
@@ -63,8 +69,9 @@ const TABLE_HEAD = [
 
 const defaultFilters = {
   name: '',
-  state: [],
-  category: [],
+  state: 'all',
+  createdStart: null,
+  createdEnd: null,
 };
 
 // ----------------------------------------------------------------------
@@ -87,15 +94,13 @@ export default function EventsView() {
   //   : searchEvents(user?.center || '');
 
   const { events, eventsLoading, eventsEmpty } = useGetEvents();
-  
 
   const confirmDelete = useBoolean();
 
   const confirmPublish = useBoolean();
 
-  const methods = useForm(); 
+  const methods = useForm();
   const { enqueueSnackbar } = useSnackbar();
-
 
   useEffect(() => {
     if (events.length) {
@@ -103,10 +108,16 @@ export default function EventsView() {
     }
   }, [events]);
 
+  const dateError =
+    filters.createdStart && filters.createdEnd
+      ? filters.createdStart.getTime() > filters.createdEnd.getTime()
+      : false;
+
   const dataFiltered = applyFilter({
     inputData: tableData,
     comparator: getComparator(table.order, table.orderBy),
     filters,
+    dateError,
   });
 
   const dataInPage = dataFiltered.slice(
@@ -177,6 +188,13 @@ export default function EventsView() {
     setFilters(defaultFilters);
   }, []);
 
+  const handleFilterStatus = useCallback(
+    (event, newValue) => {
+      handleFilters('state', newValue);
+    },
+    [handleFilters]
+  );
+
   return (
     <>
       <Container maxWidth={settings.themeStretch ? false : 'lg'}>
@@ -204,10 +222,50 @@ export default function EventsView() {
         />
 
         <Card>
+          <Tabs
+            value={filters.state}
+            onChange={handleFilterStatus}
+            sx={{
+              px: 2.5,
+              boxShadow: (theme) => `inset 0 -2px 0 0 ${alpha(theme.palette.grey[500], 0.08)}`,
+            }}
+          >
+            {STATUS_OPTIONS.map((tab) => (
+              <Tab
+                key={tab.value}
+                iconPosition="end"
+                value={tab.value}
+                label={tab.label}
+                icon={
+                  <Label
+                    variant={
+                      ((tab.value === 'all' || tab.value === filters.state) && 'filled') || 'soft'
+                    }
+                    color={
+                      (tab.value === 'publicado' && 'success') ||
+                      (tab.value === 'borrador' && 'warning') ||
+                      (tab.value === 'cancelado' && 'error') ||
+                      'default'
+                    }
+                  >
+                    {tab.value === 'all' && events.length}
+                    {tab.value === 'publicado' &&
+                      events.filter((event) => event.state === 'publicado').length}
+                    {tab.value === 'borrador' &&
+                      events.filter((event) => event.state === 'borrador').length}
+                    {tab.value === 'cancelado' &&
+                      events.filter((event) => event.state === 'cancelado').length}
+                  </Label>
+                }
+              />
+            ))}
+          </Tabs>
           <EventTableToolbar
             filters={filters}
             onFilters={handleFilters}
             //
+            canReset={canReset}
+            onResetFilters={handleResetFilters}
             categoryOptions={EVENT_CATEGORY_OPTIONS}
             stateOptions={EVENT_STATE_OPTIONS}
           />
@@ -369,8 +427,10 @@ export default function EventsView() {
 
 // ----------------------------------------------------------------------
 
-function applyFilter({ inputData, comparator, filters }) {
-  const { name, category, state } = filters;
+function applyFilter({ inputData, comparator, filters, dateError }) {
+  const { enqueueSnackbar } = useSnackbar();
+
+  const { name, createdStart, createdEnd, state } = filters;
 
   const stabilizedThis = inputData.map((el, index) => [el, index]);
 
@@ -388,12 +448,37 @@ function applyFilter({ inputData, comparator, filters }) {
     );
   }
 
-  if (category.length) {
-    inputData = inputData.filter((event) => category.includes(event.category));
+  if (state !== 'all') {
+    inputData = inputData.filter((event) => event.state === state);
   }
 
-  if (state.length) {
-    inputData = inputData.filter((event) => state.includes(event.state));
+  if (!dateError) {
+    if (createdStart && createdEnd) {
+      inputData = inputData.filter((event) => {
+        const startDate = new Date(event.createdStart);
+        const endDate = new Date(event.createdEnd);
+        const filterStartDate = new Date(createdStart);
+        const filterEndDate = new Date(createdEnd);
+
+        // Obtener la diferencia de zona horaria en minutos
+        const timezoneOffset = startDate.getTimezoneOffset();
+
+        // Ajustar las fechas según la zona horaria local
+        startDate.setMinutes(startDate.getMinutes() + timezoneOffset);
+        endDate.setMinutes(endDate.getMinutes() + timezoneOffset);
+
+        // Asegurarse de que las fechas estén dentro del mismo día.
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        filterStartDate.setHours(0, 0, 0, 0);
+        filterEndDate.setHours(23, 59, 59, 999);
+
+        return startDate >= filterStartDate && endDate <= filterEndDate;
+      });
+    }
+  } else {
+    enqueueSnackbar('Error en los filtros de la fecha', { variant: 'error' });
+    return inputData;
   }
 
   return inputData;

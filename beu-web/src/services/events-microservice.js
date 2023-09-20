@@ -1,5 +1,7 @@
 import { format, parse } from 'date-fns';
 import uuidv4 from 'src/utils/uuidv4';
+// _mock
+import { _orders } from 'src/_mock';
 
 export function fromServiceEvents(events) {
   if (!events || !Array.isArray(events)) {
@@ -51,6 +53,7 @@ export function fromServiceEvents(events) {
       ratings: event?.rating || [],
       reviews: event?.reviews || [],
       headID: event?.head_id || '',
+      activities: _orders[0].items || [], // CAMBIAR POR ACTIVIDADES DE UN EVENTO
     };
   });
 
@@ -103,6 +106,7 @@ export function fromServiceEvent(event) {
       center: event?.name_center || '',
       ratings: event?.rating || [],
       reviews: event?.total_reviews || [],
+      activities: _orders[0].items || [], // CAMBIAR POR ACTIVIDADES DE UN EVENTO
     };
 
     return modifiedEvent;
