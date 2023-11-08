@@ -24,8 +24,13 @@ import { useBoolean } from 'src/hooks/use-boolean';
 import { useResponsive } from 'src/hooks/use-responsive';
 // _mock
 import { CALENDAR_COLOR_OPTIONS } from 'src/_mock/_calendar';
+// auth
+import { AuthContext } from 'src/auth/context/jwt/auth-context';
+import { useContext } from 'react';
 // api
-import { useGetEvents, updateEvent } from 'src/api/calendar';
+import { useGetEvents, deleteEvent, searchEvents } from 'src/api/event';
+// api
+import { updateEvent } from 'src/api/calendar';
 // components
 import Iconify from 'src/components/iconify';
 import { useSettingsContext } from 'src/components/settings';
@@ -60,16 +65,26 @@ export default function CalendarView() {
 
   const [filters, setFilters] = useState(defaultFilters);
 
-  const { events, eventsLoading } = useGetEvents();
+  const { user } = useContext(AuthContext);
 
-  const eventsCalendar = events.map((event) => ({
-    ...event,
-    id: event?.id,
-    title: event.name,
-    start: event?.createdStart,
-    end: event?.createdEnd,
-    color: event?.colors,
-  }));
+  const { events, eventsLoading, eventsEmpty } = user?.center == 'Cultural' || user?.center == 'Deportivo' ? searchEvents(user?.center) : useGetEvents();
+
+
+  const eventsCalendar = events.map((event, index) => {
+    const startDate = event?.createdStart ? new Date(event.createdStart + "T" + event.timeStart) : null;
+    const endDate = event?.createdEnd ? new Date(event.createdEnd + "T" + event.timeEnd) : null;
+
+
+    return {
+      ...event,
+      id: event?.id,
+      title: event.name,
+      start: startDate,
+      end: endDate,
+      textColor: CALENDAR_COLOR_OPTIONS[index % CALENDAR_COLOR_OPTIONS.length],
+      color: CALENDAR_COLOR_OPTIONS[index % CALENDAR_COLOR_OPTIONS.length],
+    };
+  });
 
   const dateError =
     filters.startDate && filters.endDate

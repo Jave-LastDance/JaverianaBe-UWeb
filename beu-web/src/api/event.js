@@ -62,8 +62,6 @@ export function useGetEvent(eventId) {
 
 // ----------------------------------------------------------------------
 
-
-
 export async function updateEvent(eventData) {
   const URL = `${EVENT_SERVICE}${endpoints.event.update}`;
 
@@ -72,14 +70,38 @@ export async function updateEvent(eventData) {
 
     if (response.status === 200) {
       console.log('Evento actualizado correctamente:', response.data);
-      return response.data; // Opcional: puedes devolver los datos actualizados si lo deseas
+
+      if (eventData.activities.length > 0) {
+        const updatedActivities = [];
+
+        try {
+          const updatedActivity = await updateActivity(eventData.activities);
+          console.log('Actividades actualizadas:', updatedActivity);
+          updatedActivities.push(updatedActivity);
+        } catch (updateError) {
+          console.error('Error al actualizar las actividades:', updateError);
+
+          for (const activity of eventData.activities) {
+            try {
+              const createdActivity = await createActivity(activity);
+              console.log('Actividad creada:', createdActivity);
+              updatedActivities.push(createdActivity);
+            } catch (createError) {
+              console.error('Error al crear la actividad:', createError);
+              // Maneja el error según sea necesario
+            }
+          }
+        }
+      }
+
+      return response.data; // Devuelve los datos actualizados del evento
     } else {
       console.error('Error al actualizar el evento:', response.data);
       throw new Error('Error al actualizar el evento');
     }
   } catch (error) {
     console.error('Error en la solicitud de actualización:', error);
-    throw error; // Lanza el error para que el código que llama pueda manejarlo
+    throw error;
   }
 }
 
@@ -87,15 +109,14 @@ export async function updateEvent(eventData) {
 
 export async function updateStateEvent(eventId) {
   const URL = `${EVENT_SERVICE}${endpoints.event.updateState}${eventId}`;
-  
+
   const response = await axios.put(URL, eventId);
 
-    if (response.status === 200) {
-      return response.data;
-    } else {      
-      throw new Error('Error al actualizar el estado del  evento', response.data);
-    }
-
+  if (response.status === 200) {
+    return response.data;
+  } else {
+    throw new Error('Error al actualizar el estado del  evento', response.data);
+  }
 }
 
 // ----------------------------------------------------------------------
@@ -114,7 +135,7 @@ export async function createEvent(eventData) {
       throw new Error('Error al actualizar el evento');
     }
   } catch (error) {
-    console.error('Error en la solicitud de actualización:', error);
+    console.error('Error en la solicitud de CREACIÓN:', error);
     throw error; // Lanza el error para que el código que llama pueda manejarlo
   }
 }
@@ -128,11 +149,10 @@ export async function deleteEvent(eventId) {
     .catch((err) => console.log(err));
 }
 
+
 // ----------------------------------------------------------------------
 
-
 export function searchEvents(center) {
-
   if (!center) {
     return {
       events: [],
@@ -167,4 +187,59 @@ export function searchEvents(center) {
   return memoizedValue;
 }
 
+export async function updateActivity(activityData) {
+  const URL = `${EVENT_SERVICE}/eventosPUJ/actividadesPUJ/actividades`; // Asegúrate de que la URL sea la correcta para tu API
 
+  try {
+    const response = await axios.put(URL, activityData);
+
+    if (response.status === 200) {
+      console.log('Actividad actualizada correctamente:', response.data);
+      return response.data; // Opcional: puedes devolver los datos actualizados si lo deseas
+    } else {
+      console.error('Error al actualizar la actividad:', response.data);
+      throw new Error('Error al actualizar la actividad');
+    }
+  } catch (error) {
+    console.error('Error en la solicitud de actualización de la actividad:', error);
+    throw error; // Lanza el error para que el código que llama pueda manejarlo
+  }
+}
+
+export async function createActivity(newActivity) {
+  const URL = `${EVENT_SERVICE}/eventosPUJ/actividadesPUJ/actividad`; // Asegúrate de que la URL sea la correcta para tu API
+
+  try {
+    const response = await axios.post(URL, newActivity);
+
+    if (response.status === 200) {
+      console.log('Actividad creada correctamente:', response.data);
+      return response.data; // Opcional: puedes devolver los datos de la actividad creada si lo deseas
+    } else {
+      console.error('Error al crear la actividad:', response.status, response.data);
+      throw new Error('Error al crear la actividad');
+    }
+  } catch (error) {
+    console.error('Error en la solicitud de creación de la actividad:', error);
+    throw error; // Lanza el error para que el código que llama pueda manejarlo
+  }
+}
+
+export async function deleteActivity(activityId) {
+  const URL = `${EVENT_SERVICE}/eventosPUJ/actividadesPUJ/actividad/${activityId}`; // Asegúrate de que la URL sea la correcta para tu API y que se incluya el ID de la actividad
+
+  try {
+    const response = await axios.delete(URL);
+
+    if (response.status === 200) {
+      console.log('Actividad eliminada correctamente');
+      return true; // Opcional: puedes devolver un valor para indicar el éxito de la eliminación
+    } else {
+      console.error('Error al eliminar la actividad:', response.data);
+      throw new Error('Error al eliminar la actividad');
+    }
+  } catch (error) {
+    console.error('Error en la solicitud de eliminación de la actividad:', error);
+    throw error; // Lanza el error para que el código que llama pueda manejarlo
+  }
+}

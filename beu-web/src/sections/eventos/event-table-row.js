@@ -8,8 +8,11 @@ import Avatar from '@mui/material/Avatar';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
+import Paper from '@mui/material/Paper';
 import TableCell from '@mui/material/TableCell';
+import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
+import Collapse from '@mui/material/Collapse';
 import ListItemText from '@mui/material/ListItemText';
 import LinearProgress from '@mui/material/LinearProgress';
 // utils
@@ -44,11 +47,72 @@ export default function eventTableRow({
     capacity,
     timeStart,
     timeEnd,
+    activities
   } = row;
 
   const confirm = useBoolean();
 
   const popover = usePopover();
+
+
+  const collapse = useBoolean();
+
+
+
+  const renderSecondary = (
+    <TableRow>
+      <TableCell sx={{ p: 0, border: 'none' }} colSpan={8}>
+        <Collapse
+          in={collapse.value}
+          timeout="auto"
+          unmountOnExit
+          sx={{ bgcolor: 'background.neutral' }}
+        >
+          <Stack component={Paper} sx={{ m: 1.5 }}>
+            {activities.map((activity) => (
+              <Stack
+                key={activity.id_activity}
+                direction="row"
+                alignItems="center"
+                sx={{
+                  p: (theme) => theme.spacing(1.5, 2, 1.5, 1.5),
+                  '&:not(:last-of-type)': {
+                    borderBottom: (theme) => `solid 2px ${theme.palette.background.neutral}`,
+                  },
+                }}
+              >
+                <Avatar
+                  src={activity.url_poster}
+                  variant="rounded"
+                  sx={{ width: 48, height: 48, mr: 2 }}
+                />
+
+                <ListItemText
+                   primary={activity.name.charAt(0).toUpperCase() + activity.name.slice(1).toLowerCase()}
+                  secondary={''}
+                  primaryTypographyProps={{
+                    typography: 'body2',
+                  }}
+                  secondaryTypographyProps={{
+                    component: 'span',
+                    color: 'text.disabled',
+                    mt: 0.5,
+                  }}
+                />
+                 <Box  sx={{ width: 110, textAlign: 'right' }}>{activity.location}</Box>
+               
+               
+                 <Box sx={{ width: 90, textAlign: 'right' }}>{activity.category.charAt(0).toUpperCase() + activity.category.slice(1).toLowerCase()}</Box>
+                <Box sx={{ width: 110, textAlign: 'right' }}>{activity.date}</Box>
+                <Box sx={{ width: 90, textAlign: 'right' }}>{activity.time_start}</Box>
+              </Stack>
+            ))}
+          </Stack>
+        </Collapse>
+      </TableCell>
+    </TableRow>
+  );
+
 
   return (
     <>

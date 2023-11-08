@@ -31,7 +31,7 @@ export default function EventDetailsDescription({ description, url }) {
 
         <Markdown 
         
-        children={`###### Requisitos \n ${url}`}
+        children={`###### Información Adicional \n ${url}`}
         sx={{
           p: 3,
           '& p, li, ol': {

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { parseISO, sub } from 'date-fns';
+import { parse, parseISO, sub } from 'date-fns';
 import * as Yup from 'yup';
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -22,7 +22,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 // api
-import { updateEvent, createEvent } from 'src/api/event';
+import { updateEvent, createEvent, deleteActivity, uploadImages } from 'src/api/event';
 import { toServiceEvent, toServiceNewEvent } from 'src/services/events-microservice';
 // routes
 import { paths } from 'src/routes/paths';
@@ -38,6 +38,7 @@ import {
   EVENT_PUBLIC_OPTIONS,
   EVENT_TOPIC_OPTIONS,
   EVENT_HOURS_OPTIONS,
+  EVENT_LOCATIONS_OPTIONS,
 } from 'src/_mock';
 // components
 import Iconify from 'src/components/iconify';
@@ -140,6 +141,22 @@ export default function EventNewEditForm({ currentEvent }) {
 
   const values = watch();
 
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'activities',
+  });
+
+  const handleAdd = () => {
+    append({
+      id_event: currentEvent?.id,
+      id_activity: '',
+      time_end: '',
+      time_start: '',
+      description: '',
+    });
+  };
+
+
   useEffect(() => {
     if (currentEvent) {
       reset(defaultValues);
@@ -154,29 +171,118 @@ export default function EventNewEditForm({ currentEvent }) {
     }
   }, [currentEvent?.price, includePrice, setValue]);
 
+
+  const handleRemoveActivity = (index, id) => {
+    deleteActivity(id);
+    remove(index);
+  };
+
+
   const handleDropCover = useCallback(
-    (acceptedFiles) => {
+    async (acceptedFiles) => {
       if (acceptedFiles.length === 1) {
         const file = acceptedFiles[0];
 
         const newFile = URL.createObjectURL(file);
  
         setValue('coverUrl', newFile, { shouldValidate: false });
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('http://localhost:3000/api/events/uploadCover', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const imageUrl = data.imageUrl; // Obtener la URL del servidor
+
+            console.log(imageUrl); // Maneja la respuesta del servidor
+
+            setValue('coverUrl', imageUrl, { shouldValidate: false });
+          } else {
+            console.error('Error al subir el archivo');
+          }
+        } catch (error) {
+          console.error('Error al subir el archivo', error);
+        }
+
+      }
+    },
+    [setValue]
+  );
+
+
+  const handleDropCoverActivities = useCallback(
+    async (acceptedFiles, activityIndex) => {
+      if (acceptedFiles.length === 1) {
+        const file = acceptedFiles[0];
+        const formData = new FormData();
+        formData.append('file', file);
+  
+        try {
+          const response = await fetch('http://localhost:3000/api/events/uploadCover', {
+            method: 'POST',
+            body: formData,
+          });
+  
+          if (response.ok) {
+            const data = await response.json();
+            const imageUrl = data.imageUrl; // Obtener la URL del servidor
+  
+            // Utiliza el índice de la actividad para actualizar el coverUrl correcto.
+            setValue(`activities[${activityIndex}].url_poster`, imageUrl, { shouldValidate: false });
+          } else {
+            console.error('Error al subir el archivo');
+          }
+        } catch (error) {
+          console.error('Error al subir el archivo', error);
+        }
       }
     },
     [setValue]
   );
   
-  
+
+
   const handleDropImages = useCallback(
-    (acceptedFiles) => {
+    async (acceptedFiles) => {
       const files = values.images || [];
+
   
       const newUrls = acceptedFiles.map((file) =>
         URL.createObjectURL(file)
       );
   
       setValue('images', [...files, ...newUrls], { shouldValidate: true });
+
+      const formData = new FormData();
+      acceptedFiles.forEach((file) => {
+        formData.append('file', file);
+
+        // Realizar la solicitud para subir cada archivo
+        fetch('http://localhost:3000/api/events/uploadCover', {
+          method: 'POST',
+          body: formData,
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error('Error al subir el archivo');
+            }
+          })
+          .then((data) => {
+            const imageUrl = data.imageUrl; // Obtener la URL del servidor
+            setValue('images', [...files, imageUrl], { shouldValidate: true });
+          })
+          .catch((error) => {
+            console.error('Error al subir el archivo', error);
+          });
+      });
     },
     [setValue, values.images]
   );
@@ -187,14 +293,17 @@ export default function EventNewEditForm({ currentEvent }) {
   const onSubmit = handleSubmit(async (data) => {
     data.state = eventState;
 
+    console.log('DATA', data);
+
     try {
       if (currentEvent) {
+        console.log('DATA', data);
         const Transformedata = toServiceEvent(data);
         await updateEvent(Transformedata);
         reset();
         enqueueSnackbar('¡Actualización Exitosa!');
+        console.log('Transformedata', Transformedata);
         router.push(paths.dashboard.eventos.details(currentEvent.id));
-        console.info('DATA', Transformedata);
       } else {
         const TransformNewEvent = toServiceNewEvent(data);
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -240,13 +349,13 @@ export default function EventNewEditForm({ currentEvent }) {
           <Stack spacing={3} sx={{ p: 3 }}>
             <RHFTextField name="name" label="Nombre del Evento" />
 
-            <RHFTextField name="description" label="Descripción" multiline rows={4} />
+            <RHFTextField name="description" label="Descripción" multiline rows={3} />
 
             <RHFTextField
               name="requirements"
               label="Requerimientos Adicionales"
               multiline
-              rows={6}
+              rows={3}
             />
 
             <Stack spacing={1.5}>
@@ -278,6 +387,8 @@ export default function EventNewEditForm({ currentEvent }) {
     </>
   );
 
+  //  RENDER EVENT PROPERTIES
+
   const renderProperties = (
     <>
       <Grid xs={12} md={6}>
@@ -300,7 +411,19 @@ export default function EventNewEditForm({ currentEvent }) {
                 md: 'repeat(2, 1fr)',
               }}
             >
-              <RHFTextField name="location" label="Ubicación" />
+              <RHFSelect
+                fullWidth
+                name="location"
+                label="Ubicación"
+                InputLabelProps={{ shrink: true }}
+                PaperPropsSx={{ textTransform: 'capitalize' }}
+              >
+                {EVENT_LOCATIONS_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </RHFSelect>
 
               <RHFSelect
                 fullWidth
@@ -410,8 +533,8 @@ export default function EventNewEditForm({ currentEvent }) {
                 PaperPropsSx={{ textTransform: 'capitalize' }}
               >
                 {EVENT_HOURS_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
                   </MenuItem>
                 ))}
               </RHFSelect>
@@ -423,8 +546,8 @@ export default function EventNewEditForm({ currentEvent }) {
                 PaperPropsSx={{ textTransform: 'capitalize' }}
               >
                 {EVENT_HOURS_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
                   </MenuItem>
                 ))}
               </RHFSelect>
@@ -609,6 +732,194 @@ export default function EventNewEditForm({ currentEvent }) {
             </Box>
           </Stack>
         </Card>
+
+      </Grid>
+    </>
+  );
+
+  // RENDER EVENT ACTIVITIES
+  const renderActivities = (
+    <>
+      <Grid xs={12} md={12}>
+        <Typography variant="h6" sx={{ mb: 0.5 }}>
+          Actividades
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+          Actividades del evento
+        </Typography>
+        <Card sx={{ mb: 3 }}>
+          {!mdUp && <CardHeader title="Activities" />}
+
+          <Stack spacing={3} sx={{ p: 3 }}>
+            <Stack spacing={3}>
+              {fields.map((item, index) => (
+                <Stack key={item.id_activity} alignItems="flex-start" spacing={1.5}>
+                  <Typography variant="subtitle2" sx={{ textAlign: 'left' }}>{`Actividad ${
+                    index + 1
+                  }`}</Typography>
+
+                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ width: 1 }}>
+                    <RHFUpload
+                      thumbnail
+                      name={`activities[${index}].url_poster`}
+                      maxSize={3145728}
+                      onDrop={(acceptedFiles) => handleDropCoverActivities(acceptedFiles, index)}
+                      onRemove={handleRemoveFile}
+                      onRemoveAll={handleRemoveAllFiles}
+                      onUpload={() => console.info('ON UPLOAD')}
+                      sx={{ maxWidth: '250px' }}
+                    />
+
+                    <Box
+                      columnGap={2}
+                      rowGap={1}
+                      display="grid"
+                      gridTemplateRows={{
+                        xs: 'repeat(auto, minmax(0, auto))', // Ajusta automáticamente la altura según el contenido pero con un mínimo de 0
+                        md: 'repeat(auto, minmax(0, auto))', // Ajusta automáticamente la altura según el contenido pero con un mínimo de 0
+                      }}
+                      gridTemplateColumns={{
+                        xs: 'repeat(2, 1fr)',
+                        md: 'repeat(4, 1fr)',
+                      }}
+                    >
+                      <RHFTextField
+                        name={`activities[${index}].name`}
+                        label="Nombre"
+                        InputLabelProps={{ shrink: true }}
+                      />
+
+                      <RHFTextField
+                        name={`activities[${index}].description`}
+                        label="Descripción"
+                        InputLabelProps={{ shrink: true }}
+                      />
+                      <RHFSelect
+                        fullWidth
+                        name={`activities[${index}].location`}
+                        label="Ubicación"
+                        InputLabelProps={{ shrink: true }}
+                        PaperPropsSx={{ textTransform: 'capitalize' }}
+                      >
+                        {EVENT_LOCATIONS_OPTIONS.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </RHFSelect>
+                      <RHFSelect
+                        name={`activities[${index}].category`}
+                        label="Categoría"
+                        PaperPropsSx={{ textTransform: 'capitalize' }}
+                        sx={{ width: '250px' }} // Ajusta el ancho según tus necesidades
+                      >
+                        {EVENT_CATEGORY_OPTIONS.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </RHFSelect>
+
+                      <Controller
+                        name={`activities[${index}].date`}
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                          <DatePicker
+                            {...field}
+                            value={field.value ? parseISO(field.value) : null} // Transformar la fecha con parseISO
+                            format="dd/MM/yyyy"
+                            label="Fecha"
+                            slotProps={{
+                              textField: {
+                                fullWidth: true,
+                                error: !!error,
+                                helperText: error?.message,
+                              },
+                            }}
+                            rules={{
+                              validate: (value) => (value ? true : undefined), // Permitir que sea opcional
+                            }}
+                          />
+                        )}
+                      />
+
+                      <RHFSelect
+                        fullWidth
+                        name={`activities[${index}].time_start`}
+                        label="Hora Inicio"
+                        InputLabelProps={{ shrink: true }}
+                        PaperPropsSx={{ textTransform: 'capitalize' }}
+                      >
+                        {EVENT_HOURS_OPTIONS.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </RHFSelect>
+                      <RHFSelect
+                        fullWidth
+                        name={`activities[${index}].time_end`}
+                        label="Hora Fin"
+                        InputLabelProps={{ shrink: true }}
+                        PaperPropsSx={{ textTransform: 'capitalize' }}
+                      >
+                        {EVENT_HOURS_OPTIONS.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </RHFSelect>
+
+                      <RHFSelect
+                        fullWidth
+                        name={`activities[${index}].public_type`}
+                        label="Público"
+                        InputLabelProps={{ shrink: true }}
+                      >
+                        {EVENT_PUBLIC_OPTIONS.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                        ))}
+                      </RHFSelect>
+
+                      <RHFSelect
+                        fullWidth
+                        name={`activities[${index}].topic`}
+                        label="Tema"
+                        InputLabelProps={{ shrink: true }}
+                      >
+                        {EVENT_TOPIC_OPTIONS.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                        ))}
+                      </RHFSelect>
+
+                      <Button
+                        color="error"
+                        startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+                        onClick={() => handleRemoveActivity(index, item.id_activity)}
+                      >
+                        Eliminar
+                      </Button>
+                    </Box>
+                  </Stack>
+                </Stack>
+              ))}
+
+              <Button
+                size="small"
+                color="primary"
+                startIcon={<Iconify icon="mingcute:add-line" />}
+                onClick={handleAdd}
+                sx={{ flexShrink: 0 }}
+              >
+                Agregar Actividad
+              </Button>
+            </Stack>
+          </Stack>
+        </Card>
       </Grid>
     </>
   );
@@ -635,6 +946,8 @@ export default function EventNewEditForm({ currentEvent }) {
         {renderDetails}
 
         {renderProperties}
+
+        {renderActivities}
 
         {renderActions}
       </Grid>

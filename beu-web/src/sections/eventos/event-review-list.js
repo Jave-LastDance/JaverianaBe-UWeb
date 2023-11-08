@@ -10,7 +10,7 @@ export default function EventReviewList({ reviews }) {
   return (
     <>
       {reviews.map((review) => (
-        <EventReviewItem key={review.id} review={review} />
+        <EventReviewItem key={review.idCommentEvent} review={review} />
       ))}
 
       <Pagination

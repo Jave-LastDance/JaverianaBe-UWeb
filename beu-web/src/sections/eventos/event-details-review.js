@@ -34,7 +34,7 @@ export default function EventDetailsReview({ totalRatings, totalReviews, ratings
       <Rating readOnly value={totalRatings} precision={0.1} />
 
       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-        ({fShortenNumber(totalReviews)} reviews)
+      {`(${reviews.length === 0 ? 'Sin reseñas' : reviews.length === 1 ? '1 reseña' : `${reviews.length} reseñas`})`}
       </Typography>
     </Stack>
   );
@@ -57,7 +57,7 @@ export default function EventDetailsReview({ totalRatings, totalReviews, ratings
         .slice(0)
         .reverse()
         .map((rating) => (
-          <Stack key={rating.name} direction="row" alignItems="center">
+          <Stack key={rating.idRatingXEvent} direction="row" alignItems="center">
             <Typography variant="subtitle2" component="span" sx={{ width: 42 }}>
               {rating.name}
             </Typography>
@@ -80,7 +80,7 @@ export default function EventDetailsReview({ totalRatings, totalReviews, ratings
                 color: 'text.secondary',
               }}
             >
-              {fShortenNumber(rating.reviewCount)}
+              {fShortenNumber(rating.grade)}
             </Typography>
           </Stack>
         ))}

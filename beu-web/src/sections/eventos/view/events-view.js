@@ -1,12 +1,16 @@
 'use client';
 
 import isEqual from 'lodash/isEqual';
-import { useState, useEffect, useCallback } from 'react';
+import { alpha } from '@mui/material/styles';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useForm } from 'react-hook-form';
 // @mui
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Label from 'src/components/label';
 import Tooltip from '@mui/material/Tooltip';
 import Container from '@mui/material/Container';
 import TableBody from '@mui/material/TableBody';
@@ -48,8 +52,11 @@ import EventTableRow from '../event-table-row';
 import EventTableToolbar from '../event-table-toolbar';
 import EventTableFiltersResult from '../event-table-filters-result';
 import { TimeClock } from '@mui/x-date-pickers';
+import { set } from 'lodash';
 
 // ----------------------------------------------------------------------
+
+const STATUS_OPTIONS = [{ value: 'all', label: 'Todos' }, ...EVENT_STATE_OPTIONS];
 
 const TABLE_HEAD = [
   { id: 'name', label: 'Evento', width: 700 },
@@ -82,12 +89,14 @@ export default function EventsView() {
 
   const { user } = useContext(AuthContext);
 
-  // // const { events, eventsLoading, eventsEmpty } =  user?.center === 'BE-U'
-  //   ? useGetEvents()
-  //   : searchEvents(user?.center || '');
+  const { events, eventsLoading, eventsEmpty } = user?.center == 'Cultural' || user?.center == 'Deportivo' ? searchEvents(user?.center) : useGetEvents();
 
-  const { events, eventsLoading, eventsEmpty } = useGetEvents();
+
+  // const { events, eventsLoading, eventsEmpty } = useGetEvents();
   
+
+  console.log(events);
+
 
   const confirmDelete = useBoolean();
 
@@ -95,6 +104,8 @@ export default function EventsView() {
 
   const methods = useForm(); 
   const { enqueueSnackbar } = useSnackbar();
+
+
 
 
   useEffect(() => {
@@ -136,9 +147,8 @@ export default function EventsView() {
       try {
         await deleteEvent(id);
         setTableData((prevData) => prevData.filter((event) => event.id !== id));
-
         enqueueSnackbar('¡Eliminación Exitosa!');
-        console.info('DATA', id);
+        
       } catch (error) {
         setTableData((prevData) => [...prevData, tableData.find((event) => event.id === id)]);
         console.error('Error al eliminar el evento:', error);
@@ -177,6 +187,13 @@ export default function EventsView() {
     setFilters(defaultFilters);
   }, []);
 
+  const handleFilterStatus = useCallback(
+    (event, newValue) => {
+      handleFilters('state', newValue);
+    },
+    [handleFilters]
+  );
+
   return (
     <>
       <Container maxWidth={settings.themeStretch ? false : 'lg'}>
@@ -204,6 +221,47 @@ export default function EventsView() {
         />
 
         <Card>
+
+          <Tabs
+            value={filters.state}
+            onChange={handleFilterStatus}
+            sx={{
+              px: 2.5,
+              boxShadow: (theme) => `inset 0 -2px 0 0 ${alpha(theme.palette.grey[500], 0.08)}`,
+            }}
+          >
+            {STATUS_OPTIONS.map((tab) => (
+              <Tab
+                key={tab.value}
+                iconPosition="end"
+                value={tab.value}
+                label={tab.label}
+                icon={
+              
+                  <Label
+                    variant={
+                      ((tab.value === 'all' || tab.value === filters.state) && 'filled') || 'soft'
+                    }
+                    color={
+                      (tab.value === 'publicado' && 'success') ||
+                      (tab.value === 'borrador' && 'warning') ||
+                      (tab.value === 'cancelado' && 'error') ||
+                      'default'
+                    }
+                  >
+                    {tab.value === 'all' && events.length}
+                    {tab.value === 'publicado' &&
+                      events.filter((event) => event.state === 'publicado').length}
+                    {tab.value === 'borrador' &&
+                      events.filter((event) => event.state === 'borrador').length}
+                    {tab.value === 'cancelado' &&
+                      events.filter((event) => event.state === 'cancelado').length}
+                  </Label>
+                }
+              />
+            ))}
+          </Tabs>
+
           <EventTableToolbar
             filters={filters}
             onFilters={handleFilters}

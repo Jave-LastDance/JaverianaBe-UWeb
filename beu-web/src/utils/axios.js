@@ -49,6 +49,7 @@ export const endpoints = {
     details: '/eventosPUJ/evento/',
     search: '/eventosPUJ/evento/centro/',
     updateMock: '/api/events/update',
+    upload: '/api/events/uploadImages',
     update: '/eventosPUJ/evento', // eventMicroservice
     updateState: '/eventosPUJ/evento/estado/', // eventMicroservice
     create: '/eventosPUJ/evento', // eventMicroservice

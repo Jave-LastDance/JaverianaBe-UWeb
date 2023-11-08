@@ -29,6 +29,7 @@ import EventDetailsSummary from '../event-details-summary';
 import EventDetailsToolbar from '../event-details-toolbar';
 import EventDetailsCarousel from '../event-details-carousel';
 import EventDetailsDescription from '../event-details-description';
+import EventDetailsActivities from '../event-details-activities';
 
 // ----------------------------------------------------------------------
 
@@ -119,30 +120,41 @@ export default function EventDetailsView({ id }) {
       ></Box>
 
       <Card>
-        <Tabs
-          value={currentTab}
-          onChange={handleChangeTab}
-          sx={{
-            px: 3,
-            boxShadow: (theme) => `inset 0 -2px 0 0 ${alpha(theme.palette.grey[500], 0.08)}`,
-          }}
-        >
-          {[
-            {
-              value: 'description',
-              label: 'Descripción y Requisitos',
-            },
-            {
-              value: 'reviews',
-              label: `Reseñas ()`, // ${eventView.reviews.length}
-            },
-          ].map((tab) => (
-            <Tab key={tab.value} value={tab.value} label={tab.label} />
-          ))}
-        </Tabs>
+      <Tabs
+    value={currentTab}
+    onChange={handleChangeTab}
+    sx={{
+      px: 3,
+      boxShadow: (theme) => `inset 0 -2px 0 0 ${alpha(theme.palette.grey[500], 0.08)}`,
+    }}
+  >
+    {[
+      {
+        value: 'description',
+        label: 'Información Adicional',
+      },
+      {
+        value: 'activities',
+        label: 'Actividades',
+        hidden: !event.activities || event.activities.length === 0,
+      },
+      {
+        value: 'reviews',
+        label: `Reseñas (${event.reviews.length})`
+      },
+    ].map((tab) => (
+      !tab.hidden && (
+        <Tab key={tab.value} value={tab.value} label={tab.label} />
+      )
+    ))}
+  </Tabs>
 
         {currentTab === 'description' && (
           <EventDetailsDescription description={event?.description} url={event?.eventUrl} />
+        )}
+
+        {currentTab === 'activities' && (
+          <EventDetailsActivities activities={event.activities} />
         )}
 
         {currentTab === 'reviews' && (
@@ -150,7 +162,7 @@ export default function EventDetailsView({ id }) {
             ratings={event.ratings}
             reviews={event.reviews}
             totalRatings={event.totalRating}
-            totalReviews={event.totalReview}
+            totalReviews={event.reviews}
           />
         )}
       </Card>

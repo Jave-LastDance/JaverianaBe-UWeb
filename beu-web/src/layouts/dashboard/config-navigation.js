@@ -58,7 +58,7 @@ export function useNavData() {
         subheader: 'Gestión',
         items: [
           { title: 'Eventos', path: paths.dashboard.eventos.root, icon: ICONS.tour },
-          { title: 'Notificaciones', path: paths.dashboard.notificaciones, icon: ICONS.blog },
+        //  { title: 'Notificaciones', path: paths.dashboard.notificaciones, icon: ICONS.blog },
           { title: 'Archivos', path: paths.dashboard.archivos, icon: ICONS.folder },
           { title: 'Calendario', path: paths.dashboard.calendario.root, icon: ICONS.calendar },
           { title: 'Cuenta', path: paths.dashboard.cuenta, icon: ICONS.user },

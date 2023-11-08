@@ -2,7 +2,10 @@ import PropTypes from 'prop-types';
 import { useEffect, useCallback } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { format } from 'date-fns';
-
+// _mock
+import {
+  EVENT_LOCATIONS_OPTIONS
+} from 'src/_mock';
 // @mui
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
@@ -55,7 +58,7 @@ export default function EventDetailsSummary({
     coverUrl,
     available,
     totalRating,
-    totalReview,
+    reviews,
  
   } = event;
 
@@ -155,12 +158,12 @@ export default function EventDetailsSummary({
       <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
         Lugar
       </Typography>
-
       <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'justify' }}>
-      {location}
+        {EVENT_LOCATIONS_OPTIONS.find(option => option.value === location)?.label || 'No encontrado'}
       </Typography>
     </Stack>
   );
+  
 
   const renderCapacity = (
     <Stack direction="row">
@@ -264,16 +267,17 @@ export default function EventDetailsSummary({
 
   const renderRating = (
     <Stack
-      direction="row"
-      alignItems="center"
-      sx={{
-        color: 'text.disabled',
-        typography: 'body2',
-      }}
-    >
-      <Rating size="small" value={totalRating} precision={0.5} readOnly sx={{ mr: 1 }} />
-      {`(${fShortenNumber(totalReview)} reviews)`}
-    </Stack>
+    direction="row"
+    alignItems="center"
+    sx={{
+      color: 'text.disabled',
+      typography: 'body2',
+    }}
+  >
+    <Rating size="small" value={totalRating} precision={0.5} readOnly sx={{ mr: 1 }} />
+    {`(${reviews.length === 0 ? 'Sin reseñas' : reviews.length === 1 ? '1 reseña' : `${reviews.length} reseñas`})`}
+  </Stack>
+  
   );
 
   

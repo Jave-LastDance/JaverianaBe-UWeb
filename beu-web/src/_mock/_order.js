@@ -11,11 +11,18 @@ export const ORDER_STATUS_OPTIONS = [
 
 const ITEMS = [...Array(3)].map((_, index) => ({
   id: _mock.id(index),
-  sku: `16H9UR${index}`,
-  quantity: index + 1,
   name: _mock.productName(index),
   coverUrl: _mock.image.product(index),
   price: _mock.number.price(index),
+  description: _mock.sentence(index),
+  public_type: _mock.sentence(index),
+  date: _mock.time(index),
+  category: 'Categoria 1',
+  location: 'Auditorio Principal',
+  topic: 'Tema 1',
+  coverUrl: _mock.image.product(index+1),
+  isPurchased: true,
+
 }));
 
 export const _orders = [...Array(20)].map((_, index) => {
