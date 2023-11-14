@@ -1,3 +1,11 @@
-# MOCK API SETUP GUIDE
+NODE.JS
 
-https://docs.minimals.cc/quick-start
+Node 16.x || 18.x
+USING YARN (Recommend)
+
+yarn install
+yarn dev
+USING NPM
+
+npm i OR npm i --legacy-peer-deps
+npm run dev
